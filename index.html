@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ứng dụng Chia Tiền</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Ứng dụng Chia Tiền</h1>
+        
+        <div class="section">
+            <h2>Thêm người tham gia</h2>
+            <div class="input-group">
+                <input type="text" id="participantName" placeholder="Tên người tham gia">
+                <button onclick="addParticipant()">Thêm</button>
+            </div>
+            <div id="participantList" class="participant-list"></div>
+        </div>
+
+        <div class="section">
+            <h2>Thêm chi phí</h2>
+            <div class="input-group">
+                <input type="text" id="expenseDescription" placeholder="Mô tả chi phí">
+                <input type="number" id="expenseAmount" placeholder="Số tiền">
+                <select id="paidBy"></select>
+                <div id="participantCheckboxes"></div>
+                <button onclick="addExpense()">Thêm chi phí</button>
+            </div>
+            <div id="expenseList" class="expense-list"></div>
+        </div>
+
+
+        <div id="summary" class="summary">
+            <h2>Tổng kết</h2>
+            <div id="settlementSummary"></div>
+        </div>
+
+        <div class="container">
+            <!-- Previous container content remains identical -->
+            <div id="summary" class="summary">
+                <h2>Tổng kết</h2>
+                <div id="settlementSummary"></div>
+                <div id="paymentInstructions"></div>
+            </div>
+        </div>
+    
+    </div>
+
+    <script src="script.js">
+       
+    </script>
+</body>
+</html>
