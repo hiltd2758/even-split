@@ -48,13 +48,25 @@ function updatePaidBySelect() {
 
 function updateParticipantCheckboxes() {
     const container = document.getElementById('participantCheckboxes');
-    container.innerHTML = '<h3>Người tham gia:</h3>';
-    participants.forEach(name => {
+    
+    // Tạo hoặc tìm h3 bên ngoài
+    let header = container.previousElementSibling;
+    if (!header || header.tagName !== 'H3') {
+        header = document.createElement('h3');
+        header.textContent = 'Người tham gia:';
+        container.parentNode.insertBefore(header, container);
+    }
+
+    container.innerHTML = ''; // Xóa nội dung cũ
+    
+    participants.forEach((name, index) => {
         const div = document.createElement('div');
         div.innerHTML = `
             <input type="checkbox" id="check_${name}" value="${name}">
             <label for="check_${name}">${name}</label>
         `;
+        div.style.animation = `slideIn 0.3s ease forwards`;
+        div.style.animationDelay = `${index * 0.1}s`;
         container.appendChild(div);
     });
 }
@@ -77,8 +89,7 @@ function addExpense() {
         updateExpenseList();
         calculateSettlements();
         saveToLocalStorage();
-        
-        // Reset form
+
         document.getElementById('expenseDescription').value = '';
         document.getElementById('expenseAmount').value = '';
         document.getElementById('paidBy').value = '';
@@ -112,31 +123,19 @@ function removeExpense(index) {
 }
 
 function calculateSettlements() {
-    // Initialize balances for all participants
     const balances = {};
     participants.forEach(p => balances[p] = 0);
-    
-    // Track detailed transactions for each expense
+
     const transactions = [];
     
     expenses.forEach(expense => {
         const payer = expense.paidBy;
-        // const isPayerIncluded = expense.participants.includes(payer);
         const validParticipants = expense.participants;
-
-    
-    console.log("Valid participants:", validParticipants);
-    console.log("Valid participants:", validParticipants);
-
-    const perPerson = expense.amount /validParticipants.length;
-    console.log("Displayed perPerson:", perPerson);
-
+        const perPerson = expense.amount / validParticipants.length;
 
         balances[payer] += expense.amount;
         
-        
         validParticipants.forEach(participant => {
-            
             balances[participant] -= perPerson;
             transactions.push({
                 from: participant,
@@ -145,66 +144,72 @@ function calculateSettlements() {
                 description: expense.description
             });
         });
-        
     });
-    
+
     const summary = document.getElementById('settlementSummary');
     summary.innerHTML = '<h3>Chi tiết từng khoản:</h3>';
     
     expenses.forEach(expense => {
         const breakdown = document.createElement('div');
         breakdown.className = 'expense-breakdown';
-        // const validParticipants = expense.participants.filter(p => p !== expense.paidBy);
-        const validParticipants = expense.participants;
-
-        const perPerson = expense.amount / validParticipants.length;
-        console.log("Valid participants:", validParticipants);
-        console.log("Valid participants:", validParticipants);
+        const perPerson = expense.amount / expense.participants.length;
 
         breakdown.innerHTML = `
             <h4>${expense.description} (${expense.amount.toLocaleString('vi-VN')} VNĐ)</h4>
             <p>Người trả: ${expense.paidBy}</p>
-            <p>Chia cho: ${validParticipants.join(', ')}</p>
+            <p>Chia cho: ${expense.participants.join(', ')}</p>
             <p>Mỗi người trả: ${perPerson.toLocaleString('vi-VN')} VNĐ</p>
         `;
         summary.appendChild(breakdown);
     });
 
-    // Display final balances
-    // const balanceDiv = document.createElement('div');
-    // balanceDiv.innerHTML = '<h3>Số dư cuối cùng:</h3>';
-    // Object.entries(balances).forEach(([person, balance]) => {
-    //     const p = document.createElement('p');
-    //     p.textContent = `${person}: ${balance.toLocaleString('vi-VN')} VNĐ ` +
-    //         (balance > 0 ? '(nhận về)' : '(cần trả)');
-    //     p.style.color = balance > 0 ? 'green' : 'red';
-    //     balanceDiv.appendChild(p);
-    // });
-    // summary.appendChild(balanceDiv);
-
-    // Consolidate and display payment instructions
     const instructions = document.getElementById('paymentInstructions');
     instructions.innerHTML = '<h3>Hướng dẫn thanh toán:</h3>';
 
-    // Consolidate transactions by participants
     const consolidatedPayments = new Map();
     transactions.forEach(({from, to, amount}) => {
-        if (from !== to) {  // Bỏ qua trường hợp tự trả tiền cho chính mình
+        if (from !== to) {
             const key = `${from}-${to}`;
             consolidatedPayments.set(key, (consolidatedPayments.get(key) || 0) + amount);
         }
     });
-    
 
-    // Display final payment instructions
+    // Lấy trạng thái đã trả từ localStorage
+    const paidStatus = JSON.parse(localStorage.getItem('paidStatus')) || {};
+
     consolidatedPayments.forEach((amount, key) => {
         const [from, to] = key.split('-');
         if (amount > 0) {
             const instruction = document.createElement('div');
             instruction.className = 'payment-instruction';
-            instruction.textContent = `${from} trả ${amount.toLocaleString('vi-VN')} VNĐ cho ${to}`;
+
+            // Trạng thái đã trả
+            const isPaid = paidStatus[key] || false;
+
+            instruction.innerHTML = `
+                <label>
+                    <input type="checkbox" class="payment-checkbox" data-key="${key}" ${isPaid ? 'checked' : ''}>
+                    <span class="from">${from}</span>
+                    <span class="amount">${amount.toLocaleString('vi-VN')} VNĐ</span>
+                    <span class="to">${to}</span>
+                </label>
+            `;
+
             instructions.appendChild(instruction);
         }
+    });
+
+    // Bắt sự kiện thay đổi checkbox
+    document.querySelectorAll('.payment-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const key = this.dataset.key;
+            paidStatus[key] = this.checked;
+            localStorage.setItem('paidStatus', JSON.stringify(paidStatus));
+
+            // Cập nhật hiển thị trạng thái
+            const statusSpan = this.parentElement.querySelector('.status');
+            statusSpan.textContent = this.checked ? '✔️ Đã trả' : '';
+        });
     });
 }
 
@@ -229,6 +234,4 @@ function loadFromLocalStorage() {
         calculateSettlements();
     }
 }
-
-// Load saved data when page loads
 loadFromLocalStorage();
